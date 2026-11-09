@@ -1,5 +1,7 @@
 # sa-rates-toolkit
 
+![tests](https://github.com/sihlangu-mthembu/sa-rates-toolkit/actions/workflows/tests.yml/badge.svg)
+
 A Python toolkit (pandas, NumPy, SciPy) covering the core mechanics of interest-rate markets, built around South Africa with a US module:
 
 - **ZAR zero curve:** bootstrapped from government bond par yields, then fitted with a **Nelson-Siegel** model (SciPy least squares).

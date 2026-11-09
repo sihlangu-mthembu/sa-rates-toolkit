@@ -1,0 +1,26 @@
+[project]
+name = "sa-rates-toolkit"
+version = "0.1.0"
+description = "South African yield curve, bond risk, swap hedging and US rates analytics"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Sihlangu Mthembu" }]
+license = { text = "MIT" }
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.5"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+# pyflakes, pycodestyle, import sorting, bugbear and pyupgrade.
+# E501 (long lines) is ignored because some files hold long text fixtures;
+# B905 (zip strict) is ignored because every zip here pairs equal-length sequences.
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B905"]

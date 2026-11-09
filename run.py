@@ -114,7 +114,7 @@ def main():
              f"Generated {datetime.datetime.now():%Y-%m-%d %H:%M}. **All market inputs are illustrative, not live data.**",
              "", "## 1. ZAR zero curve", "", "![curve](curve.svg)", ""]
     lines += md_table(curve_df, {"par_yield": pct, "zero_rate": "{:.3%}", "discount_factor": "{:.4f}", "nelson_siegel": "{:.3%}"})
-    lines += ["", f"Nelson-Siegel fit (SciPy least squares): " +
+    lines += ["", "Nelson-Siegel fit (SciPy least squares): " +
               ", ".join(f"{k} = {v:.4f}" for k, v in ns_params.items()) + f"; RMSE {ns_rmse:.1f}bp. "
               "Three parameters summarise the whole curve as level, slope and curvature, which is how curve moves are "
               "usually described and traded."]
