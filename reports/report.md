@@ -1,6 +1,6 @@
 # SA rates toolkit report
 
-Generated 2026-11-04 21:48. **All market inputs are illustrative, not live data.**
+Generated 2026-11-09 19:41. **All market inputs are illustrative, not live data.**
 
 ## 1. ZAR zero curve
 

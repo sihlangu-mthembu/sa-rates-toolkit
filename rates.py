@@ -7,28 +7,30 @@ Simplifications (stated so they can be discussed, not hidden):
 - linear interpolation of zero rates, annual compounding.
 """
 
+from collections.abc import Callable
+
 import numpy as np
 
 
 class ZeroCurve:
-    def __init__(self, tenors, zero_rates):
+    def __init__(self, tenors: np.ndarray, zero_rates: np.ndarray) -> None:
         self.tenors = np.asarray(tenors, dtype=float)
         self.zeros = np.asarray(zero_rates, dtype=float)
 
-    def zero(self, t):
+    def zero(self, t: np.ndarray | float) -> np.ndarray | float:
         """Linearly interpolated zero rate; flat beyond the ends. Accepts scalars or arrays."""
         return np.interp(t, self.tenors, self.zeros)
 
-    def df(self, t):
+    def df(self, t: np.ndarray | int) -> np.ndarray | float:
         t = np.asarray(t, dtype=float)
         return (1 + self.zero(t)) ** -t
 
-    def shifted(self, shift_fn):
+    def shifted(self, shift_fn: Callable) -> "ZeroCurve":
         """New curve with zero rates moved by shift_fn(tenors) in decimal (0.01 = 100bp)."""
         return ZeroCurve(self.tenors, self.zeros + shift_fn(self.tenors))
 
 
-def bootstrap(par_yields):
+def bootstrap(par_yields: list[float]) -> ZeroCurve:
     """Annual par yields at tenors 1..N (array-like) -> ZeroCurve.
 
     A par bond prices at 1: c * sum(DF_1..DF_n) + DF_n = 1, so
@@ -42,7 +44,7 @@ def bootstrap(par_yields):
     return ZeroCurve(tenors, dfs ** (-1 / tenors) - 1)
 
 
-def cash_flows(coupon, maturity, face=100.0, first=1.0):
+def cash_flows(coupon: float, maturity: float, face: float = 100.0, first: float = 1.0) -> tuple[np.ndarray, np.ndarray]:
     """Times and amounts of an annual-coupon bond's remaining cash flows."""
     times = np.arange(first, maturity + 1e-9, 1.0)
     amounts = np.full(times.shape, face * coupon)
@@ -50,32 +52,32 @@ def cash_flows(coupon, maturity, face=100.0, first=1.0):
     return times, amounts
 
 
-def bond_price(curve, coupon, maturity, face=100.0):
+def bond_price(curve: ZeroCurve, coupon: float, maturity: float, face: float = 100.0) -> float:
     times, amounts = cash_flows(coupon, maturity, face)
     return float(np.sum(amounts * curve.df(times)))
 
 
-def annuity(curve, maturity):
+def annuity(curve: ZeroCurve, maturity: int) -> float:
     return float(np.sum(curve.df(np.arange(1, maturity + 1))))
 
 
-def par_swap_rate(curve, maturity):
+def par_swap_rate(curve: ZeroCurve, maturity: int) -> float:
     return (1 - float(curve.df(maturity))) / annuity(curve, maturity)
 
 
-def swap_value(curve, fixed_rate, maturity, notional, pay_fixed=True):
+def swap_value(curve: ZeroCurve, fixed_rate: float, maturity: int, notional: float, pay_fixed: bool = True) -> float:
     """Value of a fixed vs compounded-overnight swap. A payer swap gains when rates rise."""
     value = ((1 - float(curve.df(maturity))) - fixed_rate * annuity(curve, maturity)) * notional
     return value if pay_fixed else -value
 
 
-def dv01(value_fn, curve):
+def dv01(value_fn: Callable, curve: ZeroCurve) -> float:
     """Value change for a +1bp parallel move (central difference). Gains are positive."""
     up = value_fn(curve.shifted(lambda t: np.full_like(t, 0.0001)))
     down = value_fn(curve.shifted(lambda t: np.full_like(t, -0.0001)))
     return (up - down) / 2
 
 
-def modified_duration(curve, coupon, maturity):
+def modified_duration(curve: ZeroCurve, coupon: float, maturity: int) -> float:
     price = bond_price(curve, coupon, maturity)
     return -dv01(lambda c: bond_price(c, coupon, maturity), curve) / price / 0.0001

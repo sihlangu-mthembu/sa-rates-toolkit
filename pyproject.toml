@@ -24,3 +24,10 @@ line-length = 120
 # B905 (zip strict) is ignored because every zip here pairs equal-length sequences.
 select = ["E", "F", "I", "B", "UP"]
 ignore = ["E501", "B905"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+exclude = ["^tests/"]

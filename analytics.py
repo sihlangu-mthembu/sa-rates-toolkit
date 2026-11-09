@@ -1,13 +1,16 @@
 """Analytics with SciPy and pandas: Nelson-Siegel fit, yield to maturity, carry and roll-down."""
 
+
+from typing import Any
+
 import numpy as np
 import pandas as pd
 from scipy.optimize import brentq, least_squares
 
-from rates import bond_price, cash_flows
+from rates import ZeroCurve, bond_price, cash_flows
 
 
-def nelson_siegel(t, beta0, beta1, beta2, tau):
+def nelson_siegel(t: np.ndarray, beta0: float, beta1: float, beta2: float, tau: float) -> np.ndarray:
     """Nelson-Siegel zero rate: level (beta0), slope (beta1) and curvature (beta2)."""
     t = np.asarray(t, dtype=float)
     x = t / tau
@@ -15,9 +18,9 @@ def nelson_siegel(t, beta0, beta1, beta2, tau):
     return beta0 + beta1 * loading + beta2 * (loading - np.exp(-x))
 
 
-def fit_nelson_siegel(tenors, zeros):
+def fit_nelson_siegel(tenors: np.ndarray, zeros: np.ndarray) -> tuple[dict[str, float], float]:
     """Least-squares fit of the four Nelson-Siegel parameters. Returns (params, rmse_bp)."""
-    def residuals(p):
+    def residuals(p: np.ndarray) -> np.ndarray:
         return nelson_siegel(tenors, *p) - zeros
 
     fit = least_squares(residuals, x0=[zeros[-1], zeros[0] - zeros[-1], 0.0, 2.0],
@@ -26,17 +29,17 @@ def fit_nelson_siegel(tenors, zeros):
     return dict(zip(["beta0 (level)", "beta1 (slope)", "beta2 (curvature)", "tau"], fit.x)), rmse_bp
 
 
-def yield_to_maturity(price, coupon, maturity, face=100.0):
+def yield_to_maturity(price: float, coupon: float, maturity: int, face: float = 100.0) -> float:
     """Solve for the single annual yield that discounts the bond's cash flows to its price."""
     times, amounts = cash_flows(coupon, maturity, face)
 
-    def gap(y):
+    def gap(y: float) -> float:
         return float(np.sum(amounts / (1 + y) ** times)) - price
 
     return brentq(gap, -0.5, 1.0)
 
 
-def carry_rolldown(curve, bonds, horizon=1.0):
+def carry_rolldown(curve: ZeroCurve, bonds: list[dict[str, Any]], horizon: float = 1.0) -> pd.DataFrame:
     """One-year return decomposition for each bond if the curve does NOT move.
 
     carry      = coupon income / price  minus the cost of funding the position at the 1-year rate

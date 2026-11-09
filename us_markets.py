@@ -5,8 +5,12 @@ conversion factor (price per 1 of face at a 6% yield with semi-annual coupons, n
 interest or delivery-month adjustments) and clean prices given directly.
 """
 
+
+from typing import Any
+
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 
 from rates import bootstrap, par_swap_rate
 
@@ -23,13 +27,13 @@ BASKET = [
 ]
 
 
-def sofr_swap_curve():
+def sofr_swap_curve() -> DataFrame:
     curve = bootstrap(SOFR_PAR)
     return pd.DataFrame({"tenor_years": np.arange(1, 11), "sofr_par_swap_rate": [par_swap_rate(curve, n) for n in range(1, 11)],
                          "sofr_zero_rate": curve.zeros}).set_index("tenor_years")
 
 
-def conversion_factor(coupon, years, notional_yield=0.06):
+def conversion_factor(coupon: float, years: float, notional_yield: float = 0.06) -> float:
     """Simplified CME-style factor: price of 1 unit of face at a 6% yield, semi-annual coupons."""
     periods = int(round(years * 2))
     t = np.arange(1, periods + 1)
@@ -38,7 +42,7 @@ def conversion_factor(coupon, years, notional_yield=0.06):
     return float(np.sum(c / (1 + y) ** t) + 1 / (1 + y) ** periods)
 
 
-def cheapest_to_deliver(futures_price=FUTURES_PRICE, basket=BASKET):
+def cheapest_to_deliver(futures_price: float = FUTURES_PRICE, basket: list[dict[str, Any]]=BASKET) -> DataFrame:
     """Gross basis = cash price - futures price x conversion factor. Lowest basis = cheapest to deliver."""
     df = pd.DataFrame(basket).set_index("note")
     df["conversion_factor"] = [conversion_factor(c, y) for c, y in zip(df["coupon"], df["years"])]

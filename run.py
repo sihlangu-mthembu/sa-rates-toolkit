@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from analytics import carry_rolldown, fit_nelson_siegel, nelson_siegel, yield_to_maturity
-from rates import bond_price, bootstrap, dv01, modified_duration, par_swap_rate, swap_value
+from rates import ZeroCurve, bond_price, bootstrap, dv01, modified_duration, par_swap_rate, swap_value
 from us_markets import FUTURES_PRICE, cheapest_to_deliver, sofr_swap_curve
 
 ROOT = pathlib.Path(__file__).resolve().parent
@@ -38,11 +38,11 @@ SCENARIOS = {
 }
 
 
-def portfolio_value(curve):
+def portfolio_value(curve: ZeroCurve) -> float:
     return sum(bond_price(curve, r.coupon, r.maturity, face=1) * r.face for r in PORTFOLIO.itertuples())
 
 
-def md_table(df, formats):
+def md_table(df: pd.DataFrame, formats: dict[str, str]) -> list[str]:
     """Render a DataFrame as a Markdown table, formatting columns with the given format strings."""
     cols = [df.index.name or ""] + list(df.columns)
     lines = ["| " + " | ".join(cols) + " |", "| " + " | ".join("---" for _ in cols) + " |"]
@@ -52,13 +52,13 @@ def md_table(df, formats):
     return lines
 
 
-def curve_svg(curve, ns_params, path):
+def curve_svg(curve: ZeroCurve, ns_params: dict[str, float], path: pathlib.Path) -> None:
     w, h, pad = 540, 270, 44
     fine = np.linspace(1, 10, 91)
     ns = nelson_siegel(fine, *ns_params.values())
     lo, hi = min(curve.zeros.min(), ns.min()) - 0.004, max(curve.zeros.max(), ns.max()) + 0.004
 
-    def xy(t, z):
+    def xy(t: float, z: float) -> tuple[float, float]:
         return pad + (t - 1) / 9 * (w - 2 * pad), h - pad - (z - lo) / (hi - lo) * (h - 2 * pad)
 
     boot = " ".join(f"{x:.1f},{y:.1f}" for x, y in (xy(t, z) for t, z in zip(curve.tenors, curve.zeros)))
@@ -76,7 +76,7 @@ def curve_svg(curve, ns_params, path):
         f'<text x="4" y="{h - pad}" font-size="11">{lo:.1%}</text></svg>', encoding="utf-8")
 
 
-def main():
+def main() -> None:
     curve = bootstrap(PAR_YIELDS)
     ns_params, ns_rmse = fit_nelson_siegel(curve.tenors, curve.zeros)
 
@@ -95,7 +95,7 @@ def main():
     swap_rate = par_swap_rate(curve, HEDGE_TENOR)
     hedge_notional = -port_dv01 / dv01(lambda c: swap_value(c, swap_rate, HEDGE_TENOR, 1.0), curve)
 
-    def hedge_value(c):
+    def hedge_value(c: ZeroCurve) -> float:
         return swap_value(c, swap_rate, HEDGE_TENOR, hedge_notional)
 
     scen = pd.DataFrame(
