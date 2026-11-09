@@ -44,7 +44,7 @@ def portfolio_value(curve: ZeroCurve) -> float:
 
 def md_table(df: pd.DataFrame, formats: dict[str, str]) -> list[str]:
     """Render a DataFrame as a Markdown table, formatting columns with the given format strings."""
-    cols = [df.index.name or ""] + list(df.columns)
+    cols = [str(df.index.name or "")] + [str(c) for c in df.columns]
     lines = ["| " + " | ".join(cols) + " |", "| " + " | ".join("---" for _ in cols) + " |"]
     for idx, row in df.iterrows():
         cells = [str(idx)] + [formats.get(c, "{}").format(row[c]) for c in df.columns]
